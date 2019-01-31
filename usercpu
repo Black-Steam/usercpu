@@ -9,11 +9,11 @@ fUser(){
 	# test si passwd existe
 	if [ -f "$varPasswd" ]
 	then
-		varResultat=`grep -P '1[0-9]{3}' $varPasswd`
+					varResultat=$(grep -P '1[0-9]{3}' "$varPasswd")
 	else
 		echo "$varPasswd existe pas"
 	fi
-	# cr√ationd e tmp
+	# creation de tmp
 	varTmp="$HOME/tmp"
 	if [ ! -d "$varTmp" ]
 	then
@@ -22,12 +22,12 @@ fUser(){
 	else
 		echo -n "" > "$varTmp/listeUsers.txt"
 	fi
-	# cr√a©tion du taeau et fichier
-	echo "Cr√ation de la table des utilisateurs" 
+	# creation du tableau et fichier
+	echo "Creation de la table des utilisateurs" 
 	for i in $varResultat
 	do
-		varUID=`cut -d: -f3 <<< $i`
-		varName=`cut -d: -f1 <<< $i`
+		varUID=$(cut -d: -f3 <<< "$i")
+		varName=$(cut -d: -f1 <<< "$i")
 		echo "$varUID:$varName" >> "$varTmp/listeUsers.txt"
 		userTab[$varUID]="$varName"
 	done
@@ -47,30 +47,40 @@ fListeUser(){
 fCheck(){
 	while read -e -p "Quel utilisateur voulez-vous afficher : " varNameCpu
 	do
-			varCheck=`grep -wo "${varNameCpu,,}" <<< ${userTab[*]}`
-			if [ "${varNameCpu,,}" = "$varCheck"  ] && [  -n "$varNameCpu" ]
+			varCheck=$(grep -wo "${varNameCpu,,}" <<< "${userTab[*]}")
+			if [  -n "$varNameCpu" ]
 			then
-				break
-			elif [ "$varNameCpu" = "q" ]
-			then
-							fMenu
+				case "${varNameCpu,,}" in
+					"$varCheck")
+						break
+					;;
+					"all")
+						echo "Tout le monde"
+						break
+					;;
+					"q")
+						fMenu
+					;;
+					*)
+						echo "Cet utilisateur n'existe pas"
+				esac
 			else
-				echo "Cet utilisateur n' existe pas"
+				echo "Veuillez Entrer le nom d'un utilisteur"
 			fi
 	done
 }
 
-# test un utilisateur
+# tester un utilisateur
 fTestU(){
 	while fCheck		
 	do
 		if [ "$?" = 0 ]
 		then
-			echo -e "Lecture de l'utilisateur $varCheck :\tOK"
+			echo -e "$varCheck :\tOK"
 		else
 			echo "ERREUR fTestU"
 		fi
-done
+	done
 }
 
 # Afficher la charge cpu
@@ -80,8 +90,8 @@ fCpu(){
 		if [ "$?" = 0 ]
 		then
 			ps -eo pcpu,user,pid,comm|grep -w "$varCheck"|sort -n|tr -s " " "\t"|sed -r 's/^\t//g'|cut -f 1|xargs
-			calcCpu=`ps -eo pcpu,user,pid,comm|grep -w "$varCheck"|sort -n|tr -s " " " "|sed -r 's/^ //g'|cut -d " " -f 1|xargs|tr -s " " "+"`
-			echo $calcCpu | bc -l
+			calcCpu=$(ps -eo pcpu,user,pid,comm | grep -w "$varCheck" | sort -n | tr -s " " " " | sed -r 's/^ //g' | cut -d " " -f 1 | xargs | tr -s " " "+")
+			echo "$calcCpu" | bc -l
 		else
 			echo "ERREUR fCPU"
 		fi
@@ -98,7 +108,7 @@ fArgts(){
 		fAide
 	;;
 	*)
-		echo "Choix d'option invalide"
+		echo "option invalide"
 	esac
 }
 
