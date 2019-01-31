@@ -1,0 +1,150 @@
+#!/bin/bash
+
+# A  FAIRE :
+# [ ] Voir les options de select
+
+# Creation de la table des utilisateurs
+fUser(){
+	varPasswd='/etc/passwd'
+	# test si passwd existe
+	if [ -f "$varPasswd" ]
+	then
+		varResultat=`grep -P '1[0-9]{3}' $varPasswd`
+	else
+		echo "$varPasswd existe pas"
+	fi
+	# cr√ationd e tmp
+	varTmp="$HOME/tmp"
+	if [ ! -d "$varTmp" ]
+	then
+		mkdir "$varTmp"
+		echo -n "" > "$varTmp/listeUsers.txt"
+	else
+		echo -n "" > "$varTmp/listeUsers.txt"
+	fi
+	# cr√a©tion du taeau et fichier
+	echo "Cr√ation de la table des utilisateurs" 
+	for i in $varResultat
+	do
+		varUID=`cut -d: -f3 <<< $i`
+		varName=`cut -d: -f1 <<< $i`
+		echo "$varUID:$varName" >> "$varTmp/listeUsers.txt"
+		userTab[$varUID]="$varName"
+	done
+}
+
+fUser
+
+# afficher le tableau utilisateurs
+fListeUser(){
+	for index in "${!userTab[@]}"
+	do
+		echo "$index:${userTab[$index]}"
+	done
+}
+
+# Rechercher un utilisateur
+fCheck(){
+	while read -e -p "Quel utilisateur voulez-vous afficher : " varNameCpu
+	do
+			varCheck=`grep -wo "${varNameCpu,,}" <<< ${userTab[*]}`
+			if [ "${varNameCpu,,}" = "$varCheck"  ] && [  -n "$varNameCpu" ]
+			then
+				break
+			elif [ "$varNameCpu" = "q" ]
+			then
+							fMenu
+			else
+				echo "Cet utilisateur n' existe pas"
+			fi
+	done
+}
+
+# test un utilisateur
+fTestU(){
+	while fCheck		
+	do
+		if [ "$?" = 0 ]
+		then
+			echo -e "Lecture de l'utilisateur $varCheck :\tOK"
+		else
+			echo "ERREUR fTestU"
+		fi
+done
+}
+
+# Afficher la charge cpu
+fCpu(){
+	while fCheck		
+	do
+		if [ "$?" = 0 ]
+		then
+			ps -eo pcpu,user,pid,comm|grep -w "$varCheck"|sort -n|tr -s " " "\t"|sed -r 's/^\t//g'|cut -f 1|xargs
+			calcCpu=`ps -eo pcpu,user,pid,comm|grep -w "$varCheck"|sort -n|tr -s " " " "|sed -r 's/^ //g'|cut -d " " -f 1|xargs|tr -s " " "+"`
+			echo $calcCpu | bc -l
+		else
+			echo "ERREUR fCPU"
+		fi
+	done
+}
+
+# Liste des options
+fArgts(){
+	case "$@" in
+	'-l' | '--liste' )
+		fListeUser
+	;;
+	'-h' | '--help')
+		fAide
+	;;
+	*)
+		echo "Choix d'option invalide"
+	esac
+}
+
+# Menu interactif
+fMenu(){
+	echo "faite un choix : "
+	PS3='Votre choix : '
+	select reponse in "Liste" "Check" "Cpu" "Haide" "Quitter"
+	do
+		case $REPLY in
+		'1')
+			fArgts -l
+		;;
+		'2')
+			fTestU
+			break
+		;;
+		'3')
+			fCpu
+			break
+		;;
+		'4')
+			fArgts -h
+		;;
+		'5')
+			exit 0
+		;;
+		*)
+			echo "Choix de menu invalide"
+		esac
+	done
+}
+
+fAide(){
+	echo "AIDE : "
+	echo "Pour utiliser les options vous pouvez passer en argument"
+	echo -e "\t-l : Obtenir la liste des utilisateurs"
+	echo -e "\t ***"
+	echo -e "\t-h : Pour obtenir de l'aide"
+}
+
+# Test sur les options
+if [ "$#" != 0 ]
+then
+	fArgts "$@"
+else
+	fMenu
+fi
+											
